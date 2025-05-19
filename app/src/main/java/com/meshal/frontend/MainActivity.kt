@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,12 @@ import com.meshal.frontend.ui.theme.FrontendTheme
 class MainActivity : ComponentActivity() {
     private val questions = listOf(
         "Is the Earth round?" to true,
-        "Can fish fly?" to false
+        "Can fish fly?" to false,
+        "The Great Wall of China is visible from space" to false,
+        "Lightning never strikes the same place twice" to false,
+        "Water boils at 100°C at sea level" to true,
+        "Sharks are mammals" to false,
+        "The moon has its own light" to false,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +56,8 @@ class MainActivity : ComponentActivity() {
             FrontendTheme {
                 var currentQuestionIndex by remember { mutableStateOf(0) }
                 var answerState by remember { mutableStateOf<Boolean?>(null) }
+                var score by rememberSaveable { mutableStateOf(0) }
+                val isLastQuestion = currentQuestionIndex == questions.lastIndex
 
                 val (questionText, correctAnswer) = questions[currentQuestionIndex]
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -71,41 +79,48 @@ class MainActivity : ComponentActivity() {
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        if (answerState == null){
+                        if (answerState == null) {
                             QuestionButtons(
-                                onTrueClicked = { answerState = true == correctAnswer },
-                                onFalseClicked = { answerState = false == correctAnswer }
+                                {selectedAnswer ->
+                                    answerState = selectedAnswer == correctAnswer
+                                    if (answerState == true) score++
+                                }
                             )
                         } else {
-                            Button(onClick = {
-                                answerState = null
-                                currentQuestionIndex = (currentQuestionIndex + 1) % questions.size
-                            }) {
-                                Text("Next Question")
+                            if (isLastQuestion) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Your Score is : $score / ${questions.size}"
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = {
+                                        currentQuestionIndex = 0
+                                        answerState = null
+                                        score = 0
+                                    }) {
+                                        Text("Restart Game")
+                                    }
+                                }
+                            } else {
+                                Button(onClick = {
+                                    answerState = null
+                                    currentQuestionIndex =
+                                        (currentQuestionIndex + 1) % questions.size
+                                }) {
+                                    Text("Next Question")
 
+                                }
                             }
-                        }
 
+                        }
                     }
                 }
             }
         }
     }
-
-    @Composable
-    fun Question(content: String, modifier: Modifier = Modifier) {
-        Text(
-            text = "$content?",
-            modifier = modifier,
-            fontSize = 25.sp
-        )
-    }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun QuestionPreview() {
-        FrontendTheme {
-            Question("Android")
-        }
-    }
 }
+
+
+
